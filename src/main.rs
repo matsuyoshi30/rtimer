@@ -1,7 +1,35 @@
+use std::time::Duration;
+
 use gpui::*;
 
 struct RTimer {
-    text: SharedString,
+    sec: SharedString,
+}
+
+impl RTimer {
+    pub fn build(cx: &mut WindowContext) -> View<Self> {
+        cx.new_view(|cx| {
+            cx.spawn(|view, mut cx| async move {
+                loop {
+                    let _ = cx.update(|cx| {
+                        view.update(cx, |this: &mut RTimer, cx| {
+                            let next = this.sec.parse::<usize>().unwrap() + 1;
+                            this.sec = next.to_string().into();
+                            cx.notify();
+                        })
+                    });
+                    cx.background_executor()
+                        .timer(Duration::from_millis(1000))
+                        .await;
+                }
+            })
+                .detach();
+
+            RTimer {
+                sec: 0.to_string().into(),
+            }
+        })
+    }
 }
 
 impl Render for RTimer {
@@ -15,12 +43,12 @@ impl Render for RTimer {
             .shadow_lg()
             .text_xl()
             .text_color(rgb(0xffffff))
-            .child(format!("Hello, {}!", &self.text))
+            .child(format!("{}", &self.sec))
     }
 }
 
-pub static WIDTH: f64 = 500.0;
-pub static HEIGHT: f64 = 200.0;
+pub static WIDTH: f64 = 400.0;
+pub static HEIGHT: f64 = 100.0;
 
 fn main() {
     let mut options = WindowOptions::default();
@@ -41,9 +69,7 @@ fn main() {
 
     App::new().run(|cx: &mut AppContext| {
         cx.open_window(options, |cx| {
-            cx.new_view(|_cx| RTimer {
-                text: "World".into(),
-            })
+            RTimer::build(cx)
         });
     });
 }
