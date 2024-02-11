@@ -3,7 +3,10 @@ use std::time::Duration;
 use gpui::*;
 
 struct RTimer {
-    sec: SharedString,
+    hours: SharedString,
+    minutes: SharedString,
+    secs: SharedString,
+    duration: usize,
 }
 
 impl RTimer {
@@ -13,8 +16,11 @@ impl RTimer {
                 loop {
                     let _ = cx.update(|cx| {
                         view.update(cx, |this: &mut RTimer, cx| {
-                            let next = this.sec.parse::<usize>().unwrap() + 1;
-                            this.sec = next.to_string().into();
+                            this.duration += 1;
+                            let (h, m, s) = this.duration_to_hhmmss();
+                            this.hours = format!("{:02}", h).into();
+                            this.minutes = format!("{:02}", m).into();
+                            this.secs = format!("{:02}", s).into();
                             cx.notify();
                         })
                     });
@@ -26,9 +32,20 @@ impl RTimer {
                 .detach();
 
             RTimer {
-                sec: 0.to_string().into(),
+                hours: "00".into(),
+                minutes: "00".into(),
+                secs: "00".into(),
+                duration: 0,
             }
         })
+    }
+
+    fn duration_to_hhmmss(&self) -> (usize, usize, usize) {
+        let hours = self.duration / 3600;
+        let minutes = (self.duration % 3600) / 60;
+        let seconds = self.duration % 60;
+
+        (hours, minutes, seconds)
     }
 }
 
@@ -43,7 +60,7 @@ impl Render for RTimer {
             .shadow_lg()
             .text_xl()
             .text_color(rgb(0xffffff))
-            .child(format!("{}", &self.sec))
+            .child(format!("{}:{}:{}", &self.hours, &self.minutes, &self.secs))
     }
 }
 
